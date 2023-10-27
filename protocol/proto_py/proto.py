@@ -22,8 +22,8 @@ class CProto:
             flags=0x02,
             ttl=64,
         ) / scapy.TCP(
-            sport=12345,
-            dport=12346,
+            sport=7997,
+            dport=9779,
             seq=12345,
             ack=12345,
             flags=0x02,
@@ -43,6 +43,10 @@ class CProto:
     
     def send(self):
         scapy.send(self.packet)
+
+    def callback(self, pkt):
+        if pkt.haslayer(CProtoLayer):
+            pkt.show()
     
     def recv(self):
-        scapy.sniff(filter="tcp", prn=lambda x: x.show())
+        scapy.sniff(filter="tcp", prn=self.callback)
