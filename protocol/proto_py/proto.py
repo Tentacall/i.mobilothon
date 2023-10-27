@@ -16,7 +16,7 @@ class CProtoLayer(scapy.Packet):
 class CProto:
     def __init__(self) -> None:
         self.packet = scapy.IP(
-            dst="10.35.0.93",
+            dst="10.38.2.248",
             src="10.38.1.156",
             proto=0x06,
             flags=0x02,
