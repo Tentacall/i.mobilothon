@@ -1,6 +1,7 @@
 import scapy.all as scapy
 
-class CProto(scapy.Packet):
+
+class CProtoLayer(scapy.Packet):
     name = "CProto"
     fields_desc = [
         scapy.BitField("method", 0, 6),
@@ -8,5 +9,40 @@ class CProto(scapy.Packet):
         scapy.BitField("auth", 0, 1),
         scapy.ByteField("dtype", 0),
         scapy.ByteField("topic", 0),
-        scapy.ByteField("hash",0)
+        scapy.ByteField("hash", 0),
     ]
+
+
+class CProto:
+    def __init__(self) -> None:
+        self.packet = scapy.IP(
+            dst="10.35.0.93",
+            src="10.38.1.156",
+            proto=0x06,
+            flags=0x02,
+            ttl=64,
+        ) / scapy.TCP(
+            sport=12345,
+            dport=12346,
+            seq=12345,
+            ack=12345,
+            flags=0x02,
+            window=0x10,
+            options=[],
+        ) / CProtoLayer(
+            method=0x01,
+            retain=0x1,
+            auth=0x0,
+            dtype=0x10,
+            topic=0x11,
+            hash=0x01,
+        ) / "Hello World"
+
+    def show(self):
+        self.packet.show()
+    
+    def send(self):
+        scapy.send(self.packet)
+    
+    def recv(self):
+        scapy.sniff(filter="tcp", prn=lambda x: x.show())
