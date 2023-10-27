@@ -18,16 +18,10 @@ class CProto:
         self.packet = scapy.IP(
             dst="10.38.2.248",
             src="10.38.1.156",
-            proto=0x06,
-            flags=0x02,
             ttl=64,
         ) / scapy.TCP(
             sport=7997,
             dport=9779,
-            seq=12345,
-            ack=12345,
-            flags=0x02,
-            window=0x10,
             options=[],
         ) / CProtoLayer(
             method=0x01,
@@ -45,8 +39,9 @@ class CProto:
         scapy.send(self.packet)
 
     def callback(self, pkt):
-        if pkt.haslayer(CProtoLayer):
-            pkt.show()
+        if scapy.IP in pkt and pkt[scapy.IP].src == "10.38.1.156" and pkt[scapy.TCP].sport == 7997:
+            rcv_pkt = CProtoLayer(pkt[scapy.Raw].load)
+            rcv_pkt.show()  
     
     def recv(self):
         scapy.sniff(filter="tcp", prn=self.callback)
