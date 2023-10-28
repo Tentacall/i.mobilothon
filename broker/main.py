@@ -12,14 +12,17 @@ class Broker:
         self.method_handlers = MethodHandler()
         self.dtype_parser = [None]*256
         self.hashing = PearsonHashing()
+        self.method_handlers._set_permutation(self.hashing.T)
 
     def callback(self, pkt):
-        if pkt[scapy.TCP].dport == self.port:
+        if pkt[scapy.TCP].dport == self.port or pkt[scapy.TCP].sport == self.port:
+            # TODO: handle edge case
             rcv_pkt = CProtoLayer(pkt[scapy.Raw].load)
             self.cprotoHandler(rcv_pkt)
     
     def cprotoHandler(self, pkt):
         # check hash for corrupted message
+        pkt.show()
         if pkt.hash != self.hashing.hash(pkt.load):
             logger.error("Corrupted message")
             return

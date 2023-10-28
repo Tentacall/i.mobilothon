@@ -34,10 +34,14 @@ class CProtoLayer(scapy.Packet):
 
 
 class CProto:
-    def __init__(self) -> None:
+    def __init__(self, src = "10.38.1.156", dst = "10.35.0.93") -> None:
+        
+        self.topics = {}
+        
+        self.hashing = PearsonHashing()
         self.packet = scapy.IP(
-            dst="10.38.2.248",
-            src="10.38.1.156",
+            dst=dst,
+            src=src,
             ttl=64,
         ) / scapy.TCP(
             sport=7997,
@@ -45,17 +49,37 @@ class CProto:
             options=[],
         ) / CProtoLayer(
             method=0x01,
-            retain=0x1,
+            retain=0x0,
             auth=0x0,
-            dtype=0x10,
-            topic=0x11,
-            hash=0x01,
-        ) / "Hello World"
-
+            dtype=0x00,
+            topic=0x00,
+            hash=0x00,
+        )
+        
     def show(self):
         self.packet.show()
     
-    def send(self):
+    def send(self, method = 0x00, retain = 0x0, auth = 0x0, dtype = 0x00, topic = 0x00, msg = None):
+        if msg is not None:
+            _hash = self.hashing(msg)
+            self.packet[CProtoLayer].hash = _hash
+            self.packet = self.packet / msg
+
+        # validate
+        if  0 <= method <= 0x40 and \
+            0 <= retain <= 0x1 and \
+            0 <= auth <= 0x1 and \
+            0 <= dtype <= 0xFF and \
+            0 <= topic <= 0xFF:
+            self.packet[CProtoLayer].method = method
+            self.packet[CProtoLayer].retain = retain
+            self.packet[CProtoLayer].auth = auth
+            self.packet[CProtoLayer].dtype = dtype
+            self.packet[CProtoLayer].topic = topic
+        else:
+            self.packet[CProtoLayer].method = 0x00
+
+        self.packet[CProtoLayer].show()
         scapy.send(self.packet)
 
     def callback(self, pkt):

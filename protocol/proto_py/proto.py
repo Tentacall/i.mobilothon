@@ -35,14 +35,14 @@ class CProtoLayer(scapy.Packet):
 
 
 class CProto:
-    def __init__(self) -> None:
+    def __init__(self, src = "10.38.1.156", dst = "10.35.0.93") -> None:
         
         self.topics = {}
         
         self.hashing = PearsonHashing()
         self.packet = scapy.IP(
-            dst="10.38.2.248",
-            src="10.38.1.156",
+            dst=dst,
+            src=src,
             ttl=64,
         ) / scapy.TCP(
             sport=7997,
@@ -80,8 +80,9 @@ class CProto:
         else:
             self.packet[CProtoLayer].method = 0x00
 
-        self.packet[CProtoLayer].show()
+        # self.packet[CProtoLayer].show()
         scapy.send(self.packet)
+        self.packet.show()
 
     def callback(self, pkt):
         if scapy.IP in pkt and pkt[scapy.TCP].sport == 7997 and pkt[scapy.TCP].dport == 9779:
