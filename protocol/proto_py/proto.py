@@ -1,4 +1,5 @@
 import scapy.all as scapy
+import random
 
 class PearsonHashing:
     def __init__(self) -> None:
@@ -7,7 +8,7 @@ class PearsonHashing:
         random.shuffle(self.T)
         self.hash = 0
         
-    def hash(self, msg):
+    def __call__(self, msg):
         try:
             data = ''.join(format(byte, '08b') for byte in msg.encode())
         except:
@@ -36,31 +37,7 @@ class CProtoLayer(scapy.Packet):
 class CProto:
     def __init__(self) -> None:
         
-        self.methods = {
-            0x00: "PUBALL"
-            0x01: "PUB"
-            0x02: "SUB",
-            0x03: "UNSUB",
-            0x04: "INSUB",
-            0x05: "CONNECT",
-            0x06: "DISCONNECT",
-            0x07: "PING",
-            0x08: "SUBALL",
-            0x09: "UNSUBALL",
-            0x0A: "INSUBALL",
-            0x0B: "",
-        }
-        self.topics = {
-            0x00: "TOPIC0",
-            0x01: "TOPIC1",
-            0x02: "TOPIC2",
-            0x03: "TOPIC3",
-            0x04: "TOPIC4",
-            0x05: "TOPIC5",
-            0x06: "TOPIC6",
-            0x07: "TOPIC7",
-            0x08: "TOPIC8",
-        }
+        self.topics = {}
         
         self.hashing = PearsonHashing()
         self.packet = scapy.IP(
@@ -73,46 +50,37 @@ class CProto:
             options=[],
         ) / CProtoLayer(
             method=0x01,
-            retain=0x1,
+            retain=0x0,
             auth=0x0,
-            dtype=0x10,
-            topic=0x11,
-            hash=0x01,
-        ) / "Hello World"
+            dtype=0x00,
+            topic=0x00,
+            hash=0x00,
+        )
         
-    def run(self):
-        method = self.methods.get(self.packet[CProtoLayer].method)
-        topic = self.topics.get(self.packet[CProtoLayer].topic)
-        print(f"Method: {method}, Topic: {topic}")
-        if method == "PUB" or method == "PUBALL":
-            self.send()
-        if method == "SUB" or method == "SUBALL":
-            self.recv()
-        if method == "CONNECT":
-            print("Connected")
-            msg = "connected"
-            self.send(msg)
-        if method == "DISCONNECT":
-            print("Disconnected")
-            msg = "disconnected"
-            self.send(msg)
-        if method == "UNSUB":
-            print("Unsubscribed")
-            msg = {"method": "UNSUB", "topic": topic}
-            self.send(msg)
-        if method == "INSUB":
-            print("Subscribed")
-            msg = {"method": "INSUB", "topic": topic}
-            self.send(msg)
-
     def show(self):
         self.packet.show()
     
-    def send(self, msg=None):
+    def send(self, method = 0x00, retain = 0x0, auth = 0x0, dtype = 0x00, topic = 0x00, msg = None):
         if msg is not None:
-            hash = self.hashing.hash(msg)
-            self.packet[CProtoLayer].hash = hash
+            _hash = self.hashing(msg)
+            self.packet[CProtoLayer].hash = _hash
             self.packet = self.packet / msg
+
+        # validate
+        if  0 <= method <= 0x40 and \
+            0 <= retain <= 0x1 and \
+            0 <= auth <= 0x1 and \
+            0 <= dtype <= 0xFF and \
+            0 <= topic <= 0xFF:
+            self.packet[CProtoLayer].method = method
+            self.packet[CProtoLayer].retain = retain
+            self.packet[CProtoLayer].auth = auth
+            self.packet[CProtoLayer].dtype = dtype
+            self.packet[CProtoLayer].topic = topic
+        else:
+            self.packet[CProtoLayer].method = 0x00
+
+        self.packet[CProtoLayer].show()
         scapy.send(self.packet)
 
     def callback(self, pkt):
