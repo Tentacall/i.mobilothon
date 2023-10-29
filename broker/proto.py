@@ -8,7 +8,7 @@ class PearsonHashing:
         random.shuffle(self.T)
         self.hash = 0
         
-    def hash(self, msg):
+    def __call__(self, msg):
         try:
             data = ''.join(format(byte, '08b') for byte in msg.encode())
         except:
@@ -79,7 +79,7 @@ class CProto:
         else:
             self.packet[CProtoLayer].method = 0x00
 
-        self.packet[CProtoLayer].show()
+        # self.packet[CProtoLayer].show()
         scapy.send(self.packet)
 
     def callback(self, pkt):

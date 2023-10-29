@@ -11,6 +11,9 @@
     - 0x08 Reject Subscribed Topic
     - 0x09 Get All Topics
     - 0x0A Subscribe All Topics
+    - 0x0B Connect
+    - 0x0C Disconnect
+    - 0x0D Acknowledge
 - Root Methods
     - 0x10 Key Exchange Init [Auth required]
     - 0x11 Key Exchange Response

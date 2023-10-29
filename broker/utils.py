@@ -21,6 +21,9 @@ class MethodHandler:
         self.sender = CProto(src = "10.35.0.93", dst = "10.38.1.156")
 
         self.__init__basic_method()
+        self.__init__root_method()
+        self.__init__data_method()
+        self.__init__control_method()
 
     def _set_permutation(self, t):
         self.sender.hashing.T = t
@@ -41,3 +44,11 @@ class MethodHandler:
         self.method_handlers[0x01] = lambda data: logger.info("Pong")
 
 
+    def __init__root_method(self):
+        pass
+
+    def __init__data_method(self):
+        pass
+
+    def __init__control_method(self):
+        pass
