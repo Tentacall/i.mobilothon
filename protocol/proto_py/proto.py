@@ -84,7 +84,7 @@ class CProto:
         # self.packet[CProtoLayer].show()
         scapy.send(packet)
 
-        packet.show()
+        # packet.show()
 
     def callback(self, pkt):
         if scapy.IP in pkt and pkt[scapy.TCP].sport == 7997 and pkt[scapy.TCP].dport == 9779:
