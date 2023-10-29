@@ -38,7 +38,7 @@ class CProto:
     def __init__(self, src = "10.38.1.156", dst = "10.35.0.93") -> None:
         
         self.topics = {}
-        
+        self.data = None
         self.hashing = PearsonHashing()
         self.packet = scapy.IP(
             dst=dst,
@@ -61,10 +61,11 @@ class CProto:
         self.packet.show()
     
     def send(self, method = 0x00, retain = 0x0, auth = 0x0, dtype = 0x00, topic = 0x00, msg = None):
+        packet = self.packet
         if msg is not None:
             _hash = self.hashing(msg)
-            self.packet[CProtoLayer].hash = _hash
-            self.packet = self.packet / msg
+            packet[CProtoLayer].hash = _hash
+            packet = packet / msg
 
         # validate
         if  0 <= method <= 0x40 and \
@@ -72,17 +73,18 @@ class CProto:
             0 <= auth <= 0x1 and \
             0 <= dtype <= 0xFF and \
             0 <= topic <= 0xFF:
-            self.packet[CProtoLayer].method = method
-            self.packet[CProtoLayer].retain = retain
-            self.packet[CProtoLayer].auth = auth
-            self.packet[CProtoLayer].dtype = dtype
-            self.packet[CProtoLayer].topic = topic
+            packet[CProtoLayer].method = method
+            packet[CProtoLayer].retain = retain
+            packet[CProtoLayer].auth = auth
+            packet[CProtoLayer].dtype = dtype
+            packet[CProtoLayer].topic = topic
         else:
-            self.packet[CProtoLayer].method = 0x00
+            packet[CProtoLayer].method = 0x00
 
         # self.packet[CProtoLayer].show()
-        scapy.send(self.packet)
-        self.packet.show()
+        scapy.send(packet)
+
+        packet.show()
 
     def callback(self, pkt):
         if scapy.IP in pkt and pkt[scapy.TCP].sport == 7997 and pkt[scapy.TCP].dport == 9779:
