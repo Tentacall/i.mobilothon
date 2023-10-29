@@ -27,10 +27,16 @@ class Broker:
         
     
     def cprotoHandler(self, pkt):
-        # check hash for corrupted message
+        data = pkt.load if hasattr(pkt, 'load') else None
+        #check hash for corrupted message
         # print(self.hashing(pkt.load))
-        
-
+        if data:
+            if pkt.hash != self.hashing(data):
+                logger.error("Corrupted message")
+                return
+        elif pkt.hash != 0:
+            logger.error("Corrupted message")
+            return
         
         # if pkt.hash != self.hashing(pkt.load):
         #     logger.error("Corrupted message")
@@ -45,10 +51,6 @@ class Broker:
         # check if pkt have load
 
         # TODO: optimize this
-        try:
-            data = pkt.load
-        except:
-            data = None
         
         self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, data)
     

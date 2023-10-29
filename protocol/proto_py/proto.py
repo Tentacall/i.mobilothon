@@ -9,17 +9,12 @@ class PearsonHashing:
         self.hash = 0
         
     def __call__(self, msg):
-        try:
-            data = ''.join(format(byte, '08b') for byte in msg.encode())
-        except:
-            data = "{0:08b}".format(int(msg))
-
-        hash = self.T[int(data[:self.length], 2)]
-        blocks = len(data)//self.length
-
-        for i in range(1, blocks):
-            hash = self.T[hash ^ int(data[i*self.length:(i+1)*self.length], 2)]
-        return hash
+        if type(msg) == bytes:
+            return self._hash_bytes(msg)
+        elif type(msg) == str:
+            return self._hash_bytes(msg.encode())
+        else:
+            return self._hash_bytes(str(msg).encode())
 
 
 class CProtoLayer(scapy.Packet):

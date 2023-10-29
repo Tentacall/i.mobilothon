@@ -9,17 +9,36 @@ class PearsonHashing:
         self.hash = 0
         
     def __call__(self, msg):
-        try:
-            data = ''.join(format(byte, '08b') for byte in msg.encode())
-        except:
-            data = "{0:08b}".format(int(msg))
+        if type(msg) == bytes:
+            return self._hash_bytes(msg)
+        elif type(msg) == str:
+            return self._hash_bytes(msg.encode())
+        else:
+            return self._hash_bytes(str(msg).encode())
+        # print(msg, type(msg))
+        # try:
+        #     data = ''.join(format(byte, '08b') for byte in msg.encode())
+        # except:
+        #     data = "{0:08b}".format(int(msg))
 
-        hash = self.T[int(data[:self.length], 2)]
-        blocks = len(data)//self.length
+        # hash = self.T[int(data[:self.length], 2)]
+        # blocks = len(data)//self.length
 
-        for i in range(1, blocks):
-            hash = self.T[hash ^ int(data[i*self.length:(i+1)*self.length], 2)]
+        # for i in range(1, blocks):
+        #     hash = self.T[hash ^ int(data[i*self.length:(i+1)*self.length], 2)]
+        # return hash
+
+    def _hash_bytes(self, msg):
+        # if the data type of bytes
+        hash = self.T[msg[0]]
+        for i in range(1, len(msg)):
+            hash = self.T[hash ^ msg[i]]
         return hash
+
+    # def _hash_num(self, msg):
+        # if data type of int, float, double etc
+
+
 
 class CProtoLayer(scapy.Packet):
     name = "CProto"
@@ -89,3 +108,11 @@ class CProto:
     
     def recv(self):
         scapy.sniff(filter="tcp", prn=self.callback)
+
+
+if __name__ == '__main__':
+    # test
+    hashing = PearsonHashing()
+    print(hashing("Hello"))
+    print(hashing(8368643))
+    print(hashing(0x0074657465745))
