@@ -2,7 +2,7 @@ import scapy.all as scapy
 from proto import CProto
 
 if __name__ == "__main__":
-    proto = CProto(src="10.35.0.93", dst="10.38.1.156")
+    proto = CProto(src="10.35.0.93", dst="10.35.7.147")
     # proto.show()
     print(">>> [method] [retain] [auth] [dtype] [topic] [...msg]")
     while True:

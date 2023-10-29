@@ -1,4 +1,4 @@
-import scapy.all as scapy
+from scapy.all import *
 import argparse
 from loggings import logger
 from proto import CProtoLayer, PearsonHashing
@@ -15,27 +15,46 @@ class Broker:
         self.method_handlers._set_permutation(self.hashing.T)
 
     def callback(self, pkt):
-        if pkt[scapy.TCP].dport == self.port or pkt[scapy.TCP].sport == self.port:
+        # TODO : should listen to port self.port only [ dst_port == self.port ]
+        if pkt[TCP].dport == self.port or pkt[TCP].sport == self.port:
             # TODO: handle edge case
-            rcv_pkt = CProtoLayer(pkt[scapy.Raw].load)
-            self.cprotoHandler(rcv_pkt)
+            # pkt.show()
+            try:
+                rcv_pkt = CProtoLayer(pkt[Raw].load)
+                x = self.cprotoHandler(rcv_pkt)
+            except Exception as e:
+                logger.error(e)
+        
     
     def cprotoHandler(self, pkt):
         # check hash for corrupted message
-        pkt.show()
-        if pkt.hash != self.hashing.hash(pkt.load):
-            logger.error("Corrupted message")
-            return
+        # print(self.hashing(pkt.load))
+        
+
+        
+        # if pkt.hash != self.hashing(pkt.load):
+        #     logger.error("Corrupted message")
+        #     return
         
         # save packet to `{topic}{time}.pcap` file
-        if self.topics[pkt.topic] is None:
-            self.topics[pkt.topic] = scapy.PcapWriter(f"{pkt.topic}{pkt.time}.pcap", append=True)
+        # if self.topics[pkt.topic] is None:
+        #     self.topics[pkt.topic] = scapy.PcapWriter(f"{pkt.topic}{pkt.time}.pcap", append=True)
         
-        self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, pkt.load)
+        # print("Handling packet")
+        
+        # check if pkt have load
+
+        # TODO: optimize this
+        try:
+            data = pkt.load
+        except:
+            data = None
+        
+        self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, data)
     
     def start(self):
         logger.info(f"Listening on port {self.port}")
-        scapy.sniff(filter="tcp", prn=self.callback)
+        sniff(filter="tcp", prn=self.callback)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Broker')  

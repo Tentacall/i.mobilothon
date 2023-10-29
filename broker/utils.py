@@ -20,15 +20,18 @@ class MethodHandler:
         self.method_handlers = [None]*64
         self.sender = CProto(src = "10.35.0.93", dst = "10.38.1.156")
 
+        self.__init__basic_method()
+
     def _set_permutation(self, t):
         self.sender.hashing.T = t
 
     def __call__(self, method, auth, dtype, topic, data):
+        # print(method, type(method), self.method_handlers)
         return self.method_handlers[method](data)
 
     def __init__basic_method(self):
         # 0x00
-        def ping():
+        def ping(_data):
             logger.info("Ping")
             # senf a pong message
             self.sender.send(0x01, 0x0, 0x0, 0x00, 0x00)

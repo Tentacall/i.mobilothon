@@ -56,6 +56,8 @@ class CProto:
             topic=0x00,
             hash=0x00,
         )
+
+        self.data = None
         
     def show(self):
         self.packet.show()
@@ -64,7 +66,7 @@ class CProto:
         if msg is not None:
             _hash = self.hashing(msg)
             self.packet[CProtoLayer].hash = _hash
-            self.packet = self.packet / msg
+            self.data = msg
 
         # validate
         if  0 <= method <= 0x40 and \
@@ -81,8 +83,9 @@ class CProto:
             self.packet[CProtoLayer].method = 0x00
 
         # self.packet[CProtoLayer].show()
-        scapy.send(self.packet)
-        self.packet.show()
+        # self.packet = self.packet / scapy.Raw(load=self.data)
+        scapy.send(self.packet / scapy.Raw(load=self.data))
+        self.data = None
 
     def callback(self, pkt):
         if scapy.IP in pkt and pkt[scapy.TCP].sport == 7997 and pkt[scapy.TCP].dport == 9779:
