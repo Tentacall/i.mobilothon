@@ -37,7 +37,7 @@
 
 ## Self Defined Standard Data type
 - 0x00 null ( not data )
-- 0x01 boolean
+- 0x01 boolean  
 - 0x02 byte # 8 bit
 - 0x03 char # 8 bit
 - 0x04 int16 # 16 bit 
