@@ -1,0 +1,5 @@
+coloredlogs==15.0.1
+humanfriendly==10.0
+-e .
+scapy==2.5.0
+sockets==1.0.0

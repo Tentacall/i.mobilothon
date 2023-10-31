@@ -16,6 +16,12 @@ class PearsonHashing:
         else:
             return self._hash_bytes(str(msg).encode())
 
+    def _hash_bytes(self, msg):
+        # if the data type of bytes
+        hash = self.T[msg[0]]
+        for i in range(1, len(msg)):
+            hash = self.T[hash ^ msg[i]]
+        return hash
 
 class CProtoLayer(scapy.Packet):
     name = "CProto"
@@ -56,6 +62,10 @@ class CProto:
         
     def show(self):
         self.packet.show()
+
+    def set_dst(self, dst_ip, dst_port = 9779 ):
+        self.packet[scapy.IP].dst = dst_ip
+        self.packet[scapy.TCP].dport = dst_port
     
     def send(self, method = 0x00, retain = 0x0, auth = 0x0, dtype = 0x00, topic = 0x00, msg = None):
         packet = self.packet
@@ -90,3 +100,10 @@ class CProto:
     
     def recv(self):
         scapy.sniff(filter="tcp", prn=self.callback)
+
+if __name__ == '__main__':
+    # test
+    hashing = PearsonHashing()
+    print(hashing("Hello"))
+    print(hashing(8368643))
+    print(hashing(0x0074657465745))

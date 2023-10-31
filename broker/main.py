@@ -1,7 +1,7 @@
 from scapy.all import *
 import argparse
 from loggings import logger
-from proto import CProtoLayer, PearsonHashing
+from protocol.proto_py.proto import CProtoLayer, PearsonHashing
 from utils import DtypeParser, MethodHandler
 
 class Broker:
@@ -20,25 +20,21 @@ class Broker:
             # TODO: handle edge case
             # pkt.show()
             try:
-                rcv_pkt = CProtoLayer(pkt[Raw].load)
-                x = self.cprotoHandler(rcv_pkt)
+                d_ip, d_port = pkt[IP].src, pkt[TCP].sport
+                rcv_pkt = CProtoLayer(pkt[Raw].load,)
+                x = self.cprotoHandler(rcv_pkt,  d_ip, d_port)
             except Exception as e:
                 logger.error(e)
         
     
-    def cprotoHandler(self, pkt):
+    def cprotoHandler(self, pkt, dst_ip, dst_port):
         data = pkt.load if hasattr(pkt, 'load') else None
-        #check hash for corrupted message
-        # print(self.hashing(pkt.load))
-        if data:
-            if pkt.hash != self.hashing(data):
-                logger.error("Corrupted message")
-                return
-        elif pkt.hash != 0:
-            logger.error("Corrupted message")
-            return
-        
-        # if pkt.hash != self.hashing(pkt.load):
+        ### check hash for corrupted message
+        # if data:
+        #     if pkt.hash != self.hashing(data):
+        #         logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
+        #         return
+        # elif pkt.hash != 0:
         #     logger.error("Corrupted message")
         #     return
         
@@ -46,13 +42,10 @@ class Broker:
         # if self.topics[pkt.topic] is None:
         #     self.topics[pkt.topic] = scapy.PcapWriter(f"{pkt.topic}{pkt.time}.pcap", append=True)
         
-        # print("Handling packet")
-        
-        # check if pkt have load
 
-        # TODO: optimize this
-        
-        self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, data)
+
+        # TODO: optimize this  
+        self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, data, dst_ip, dst_port)
     
     def start(self):
         logger.info(f"Listening on port {self.port}")
