@@ -48,15 +48,14 @@
 - 0x09 float32
 - 0x0A float64
 - 0x0B float128
-- 0x0C array [char]
-- 0x0D array []
 - 0x0E yaml
 - 0x0F bson
 - 0x10 protobuf
 - 0x11 msgpack
-- 0x12 array [32]
-- 0x13 array [float]
-- 0x14 nparray
+- 0x12 array [byte]
+- 0x13 array [char]
+- 0x14 array [int16]
+- 0x24 nparray
 
 ## Topic is flexible 
 - it is managed by broker onflight

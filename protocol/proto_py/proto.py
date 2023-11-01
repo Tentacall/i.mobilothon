@@ -1,5 +1,6 @@
 import scapy.all as scapy
 import random
+from protocol.proto_py.utils import DtypeParser
 
 class PearsonHashing:
     def __init__(self) -> None:
@@ -57,8 +58,7 @@ class CProto:
             topic=0x00,
             hash=0x00,
         )
-
-        self.data = None
+        self.dtype_parser = DtypeParser()
         
     def show(self):
         self.packet.show()
@@ -70,6 +70,7 @@ class CProto:
     def send(self, method = 0x00, retain = 0x0, auth = 0x0, dtype = 0x00, topic = 0x00, msg = None):
         packet = self.packet
         if msg is not None:
+            msg = self.dtype_parser.encode(dtype, msg)
             _hash = self.hashing(msg)
             packet[CProtoLayer].hash = _hash
             packet = packet / msg

@@ -1,31 +1,7 @@
 from broker.loggings import logger
 from protocol.proto_py.proto import CProto, PearsonHashing
+from protocol.proto_py.utils import DtypeParser
 from typing import Callable, Optional, List
-
-class DtypeParser:
-    def __init__(self):
-        self.encoder: List[Optional[Callable]] = [None]*256
-        self.decoder: List[Optional[Callable]] = [None]*256
-
-        self.initSimpleDtypeParser()
-
-    def encode(self, dtype, data):
-        return self.encoder[dtype](data)
-
-    def decode(self, dtype, data):
-        return self.decoder[dtype](data)
-
-    def helperParser(self, type, data):
-        pass
-
-    def initSimpleDtypeParser(self):
-        self.encoder[0] = lambda _data: None
-        self.decoder[0] = lambda _data: None
-
-        # boolean
-        self.encoder[1] = lambda _data: 0x01 if _data else 0x00
-        self.decoder[1] = lambda _data: True if _data == 0x01 else False
-        
 
 
 class AutherizedDevices:
