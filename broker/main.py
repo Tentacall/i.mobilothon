@@ -2,7 +2,7 @@ from scapy.all import *
 import argparse
 from loggings import logger
 from protocol.proto_py.proto import CProtoLayer, PearsonHashing
-from utils import DtypeParser, MethodHandler
+from utils import MethodHandler
 
 class Broker:
     def __init__(self, port = 9779):
