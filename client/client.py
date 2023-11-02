@@ -10,10 +10,7 @@ from protocol.proto_py.proto import CProto, PearsonHashing
 
 class Client:
     def __init__(self, src, dst, sport, dport, client_id = 0) -> None:
-        self.src = src
-        self.dst = dst
         self.sport = sport
-        self.dport = dport
         self.client_id = client_id
         self.proto = CProto(src, dst, sport, dport)
         self.dtype_parser = DtypeParser()
