@@ -1,4 +1,4 @@
-import queue
+import argparse
 import threading
 from scapy.all import *
 
@@ -6,16 +6,19 @@ from broker.loggings import logger
 from protocol.proto_py.utils import DtypeParser
 from protocol.proto_py.standards import Method, DType
 from protocol.proto_py.proto import CProto, PearsonHashing
+from broker.loggings import logger
 
 
 class Client:
     def __init__(self, src, dst, sport, dport, client_id = 0) -> None:
         self.sport = sport
+        self.dst_ip = dst
+        self.dst_port = dport
         self.client_id = client_id
         self.proto = CProto(src, dst, sport, dport)
-        self.dtype_parser = DtypeParser()
-        self.hashing = PearsonHashing()
-    
+        self.proto.hashing.T = [i for i in range(2**8)]
+        self.method_handlers = MethodHandler(self.proto)
+
     def cli(self):
         print(f"[ Client {self.client_id} ]: Starting at port {self.sport}")
         print(">>> [method] [retain] [auth] [dtype] [topic] [...msg]")
@@ -23,8 +26,8 @@ class Client:
         while True:
             try:
                 token = input(">>> ").split()
-            except KeyboardInterrupt:
-                print("KeyboardInterrupt")
+            except :
+                logger.error("Exiting client")
                 break
             # example: 
             if len(token) == 0:
@@ -38,16 +41,35 @@ class Client:
             msg = " ".join(token[5:]) if len(token) > 5  else None
 
             self.proto.send(method, retain, auth, dtype, topic, msg)
-            
+
     def callback(self, pkt):
-        if (
-            scapy.IP in pkt
-            and pkt[scapy.TCP].sport == 7997
-            and pkt[scapy.TCP].dport == 9779
-        ):
-            rcv_pkt = CProtoLayer(pkt[scapy.Raw].load)
-            print("\nReceived packet: ")
-            rcv_pkt.show()
+        if pkt[IP].src != self.dst_ip or pkt[TCP].sport != self.dst_port:
+            return # from someone else
+        
+        if pkt[TCP].dport == self.sport:
+            return # not for me
+        
+        try:
+            d_ip, d_port = pkt[IP].src, pkt[TCP].sport
+            rcv_pkt = CProto(pkt[Raw].load)
+            x = self.cprotoHandler(rcv_pkt,  d_ip, d_port)
+        except Exception as e:
+            logger.error(e)
+
+    def cprotoHandler(self, pkt, dst_ip, dst_port):
+        data = pkt.load if hasattr(pkt, 'load') else None
+        if data:
+            if pkt.hash != self.hashing(data):
+                logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
+                return
+        elif pkt.hash != 0:
+            logger.error("Corrupted message")
+            return
+        
+        # clients not necessarily need to save packet 
+
+        self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, data, dst_ip, dst_port)
+        
 
     def start_listener(self):
         def listener_thread_func():
@@ -60,12 +82,13 @@ class Client:
 
 
 class MethodHandler:
-    def __init__(self):
+    def __init__(self, sender: CProto):
         self.method_handlers = [None] * 256
         self.dtype_parser = DtypeParser()
         self.hashing = PearsonHashing()
         self.subscribed_topics = {}
 
+        self.sender = sender
         self.__init__basic_method()
 
     def __call__(self, method, auth, dtype, topic, data, dst_ip, dst_port):

@@ -48,7 +48,7 @@ class CProto:
         self.packet = (
             scapy.IP(
                 dst=dst,
-                # src=src,
+                # src=src, default to self ip   
                 ttl=64,
             )
             / scapy.TCP(
