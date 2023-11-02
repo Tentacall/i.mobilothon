@@ -29,7 +29,7 @@ class Broker:
     
     def cprotoHandler(self, pkt, dst_ip, dst_port):
         data = pkt.load if hasattr(pkt, 'load') else None
-        ### check hash for corrupted message
+        ### check hash for corrupted message : TODO
         # if data:
         #     if pkt.hash != self.hashing(data):
         #         logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
@@ -38,7 +38,7 @@ class Broker:
         #     logger.error("Corrupted message")
         #     return
         
-        # save packet to `{topic}{time}.pcap` file
+        # save packet to `{topic}{time}.pcap` file : TODO
         # if self.topics[pkt.topic] is None:
         #     self.topics[pkt.topic] = scapy.PcapWriter(f"{pkt.topic}{pkt.time}.pcap", append=True)
         

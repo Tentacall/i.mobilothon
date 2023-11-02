@@ -42,7 +42,7 @@ class AutherizedDevices:
 class MethodHandler:
     def __init__(self):
         self.method_handlers: List[Optional[Callable]] = [None] * 64
-        self.sender = CProto(src="10.35.0.93", dst="10.38.1.156")
+        self.sender = CProto(src="10.38.2.88")
         self.dtype_parser = DtypeParser()
         self.autherized_devices = AutherizedDevices()
 
@@ -131,6 +131,10 @@ class MethodHandler:
                 self.dtype_parser.encode(DType.Byte.value, topic),
             )
         self.method_handlers[Method.Publish.value] = topic_publish
+
+        self.method_handlers[Method.AprrovePublishedTopic.value] = lambda *args: logger.info(f"[{args[5]}:{args[6]}] Topic {args[0]} Topic Approved")
+
+        
 
     def __init__root_method(self):
         pass
