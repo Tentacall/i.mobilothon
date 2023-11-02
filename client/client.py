@@ -108,9 +108,31 @@ class MethodHandler:
 
         # 0x01
         self.method_handlers[Method.Pong.value] = lambda *args: logger.info(f"Pong from {args[4]}:{args[5]}")
+        
+        # 0x02
+        def publish(*args):
+            logger.info(f"Publish to {args[4]}:{args[5]} | topic: {args[3]}")
+            # specific for different clients
+        
+        # 0x03   
+        def subscribe(*args):
+            logger.info(f"Subscribe to {args[4]}:{args[5]} | topic: {args[3]}")
+            # specific for different clients
+        
+        # 0x0   
+        def unsubscribe(*args):
+            logger.info(f"Unsubscribe to {args[4]}:{args[5]} | topic: {args[3]}")
+            # specific for different clients
+        
+        # 0x0B
+        def conn_ack(*args):
+            self._set_permutation(args[0])
+            logger.info(f"Connection Acknowledgement from {args[4]}:{args[5]}")
+            print("Connected")          
+            
 
 
 if __name__ == "__main__":
-    client = Client("10.35.0.93", "10.38.0.242", 9779, 9779)
+    client = Client("10.35.0.93", "10.38.2.88", 9779, 9779)
     client.start_listener()
     client.cli()
