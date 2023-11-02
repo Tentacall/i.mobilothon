@@ -16,7 +16,8 @@ class Broker:
 
     def callback(self, pkt):
         # TODO : should listen to port self.port only [ dst_port == self.port ]
-        if pkt[TCP].dport == self.port or pkt[TCP].sport == self.port:
+        # if pkt[TCP].dport == self.port or pkt[TCP].sport == self.port:
+        if pkt[TCP].dport == self.port :
             # TODO: handle edge case
             # pkt.show()
             try:
@@ -24,6 +25,7 @@ class Broker:
                 rcv_pkt = CProtoLayer(pkt[Raw].load,)
                 x = self.cprotoHandler(rcv_pkt,  d_ip, d_port)
             except Exception as e:
+                # pkt.show()
                 logger.error(e)
         
     

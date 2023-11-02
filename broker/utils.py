@@ -42,7 +42,7 @@ class AutherizedDevices:
 class MethodHandler:
     def __init__(self):
         self.method_handlers: List[Optional[Callable]] = [None] * 64
-        self.sender = CProto(src="10.38.2.88")
+        self.sender = CProto(src="10.38.2.88", verbose=False)
         self.dtype_parser = DtypeParser()
         self.autherized_devices = AutherizedDevices()
 
@@ -67,19 +67,19 @@ class MethodHandler:
     def __init__basic_method(self):
         # 0x00
         def ping(*args):
-            logger.info("Ping")
+            logger.info(f"Ping from {args[4]}:{args[5]}")
             # send a pong message
-            self.sender.send(Method.Pong.value, 0x0, 0x0, DType.Null, 0x00)
+            self.sender.send(Method.Pong.value, 0x0, 0x0, DType.Null.value, 0x00)
 
         self.method_handlers[Method.Ping.value] = ping
 
         # 0x01
-        self.method_handlers[Method.Pong.value] = lambda *args: logger.info("Pong")
+        self.method_handlers[Method.Pong.value] = lambda *args: logger.info(f"Pong from {args[4]}:{args[5]}")
 
         # 0x0B -> Connect Method  send Acknowledgement or Disconnect
         def connect(*args):
             # send permutation table
-            logger.info(f"Connect request from : {args[5]}:{args[6]}")
+            logger.info(f"Connect request from : {args[4]}:{args[5]}")
             self.autherized_devices.__add_ip(args[5])
             p_table = self.sender.hashing.T
             self._set_permutation([i for i in range(256)])
@@ -99,14 +99,14 @@ class MethodHandler:
 
         # 0x02 -> Publish topic
         def topic_publish(*args):
-            logger.info(f"[{args[5]}:{args[6]}] Publish topic : {args[3]}")
+            logger.info(f"[{args[4]}:{args[5]}] Publish topic : {args[3]}")
             if self.avilable_topics.empty():
-                logger.error(f"[{args[5]}:{args[6]}] No avilable topic")
+                logger.error(f"[{args[4]}:{args[5]}] No avilable topic")
                 self.sender.send(0x07, 0x0, 0x0, 0x00, 0x00)
                 return
 
             elif args[3] in self.topics:
-                logger.error(f"[{args[5]}:{args[6]}] Topic already published")
+                logger.error(f"[{args[4]}:{args[5]}] Topic already published")
                 self.sender.send(
                     Method.RejectPublishedTopic,
                     0x0,
@@ -121,18 +121,19 @@ class MethodHandler:
                 "source": [args[5]],
                 "subscribers": [],
             }
-            logger.info(f"[{args[5]}:{args[6]}] Topic {args[0]} published on {topic}")
+            logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} published on {topic}")
             self.sender.send(
                 Method.AprrovePublishedTopic.value,
                 0x0,
                 0x0,
-                DType.Byte,
+                DType.Byte.value,
                 0x00,
                 self.dtype_parser.encode(DType.Byte.value, topic),
             )
         self.method_handlers[Method.Publish.value] = topic_publish
 
-        self.method_handlers[Method.AprrovePublishedTopic.value] = lambda *args: logger.info(f"[{args[5]}:{args[6]}] Topic {args[0]} Topic Approved")
+        self.method_handlers[Method.AprrovePublishedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Topic Approved")
+        self.method_handlers[Method.RejectPublishedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Topic Rejected")
 
         
 

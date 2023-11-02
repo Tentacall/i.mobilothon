@@ -40,7 +40,7 @@ class CProtoLayer(scapy.Packet):
 
 class CProto:
     def __init__(
-        self, src="10.35.0.93", dst="10.35.0.93", sport=9779, dport=9779
+        self, src="10.35.0.93", dst="10.35.0.93", sport=9779, dport=9779, verbose=True
     ) -> None:
         self.topics = {}
         self.data = None
@@ -66,6 +66,7 @@ class CProto:
             )
         )
         self.dtype_parser = DtypeParser()
+        self.verbose = verbose
 
     def show(self):
         self.packet.show()
@@ -99,9 +100,10 @@ class CProto:
             packet[CProtoLayer].method = 0x00
 
         # self.packet[CProtoLayer].show()
-        scapy.send(packet)
+        scapy.send(packet, verbose=False)
 
-        packet.show()
+        if self.verbose:
+            packet.show()
 
     def callback(self, pkt):
         if (
