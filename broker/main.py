@@ -32,13 +32,13 @@ class Broker:
     def cprotoHandler(self, pkt, dst_ip, dst_port):
         data = pkt.load if hasattr(pkt, 'load') else None
         ### check hash for corrupted message : TODO
-        # if data:
-        #     if pkt.hash != self.hashing(data):
-        #         logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
-        #         return
-        # elif pkt.hash != 0:
-        #     logger.error("Corrupted message")
-        #     return
+        if data:
+            if pkt.hash != self.hashing(data):
+                logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
+                return
+        elif pkt.hash != 0:
+            logger.error("Corrupted message")
+            return
         
         # save packet to `{topic}{time}.pcap` file : TODO
         # if self.topics[pkt.topic] is None:
