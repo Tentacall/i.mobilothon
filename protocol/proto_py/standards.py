@@ -44,6 +44,7 @@ class Method(Enum):
     Connect = 0x0B
     Disconnect = 0x0C
     ConnectAcknowledgement = 0x0D
+    DisconnectAcknowledgement = 0x0E
     
     # Root methods
     

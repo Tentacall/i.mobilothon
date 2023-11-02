@@ -7,7 +7,8 @@ class ClientA(Client):
         super().__init__(src, dst, sport, dport)
 
     def connect(self, ip, port):
-        pass
+        self.proto.set_dst(ip, port)
+        self.proto.send(Method.CONNECT, False, False, DType.INT, 0, self.sport)
     
     def cli(self):
         print(f"[ Client A ]: Starting at port {self.sport}")
@@ -31,5 +32,5 @@ class ClientA(Client):
 
 
 if __name__ == '__main__':
-    client = ClientA("10.38.2.88", "10.38.2.88", 9000, 9779)
+    client = ClientA("10.38.2.88", "10.35.0.93", 9000, 9779)
     client.cli()

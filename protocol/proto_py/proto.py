@@ -100,7 +100,7 @@ class CProto:
 
         # self.packet[CProtoLayer].show()
         scapy.send(packet)
-
+        print("\nSent packet: ")
         packet.show()
 
     def callback(self, pkt):
@@ -110,6 +110,7 @@ class CProto:
             and pkt[scapy.TCP].dport == 9779
         ):
             rcv_pkt = CProtoLayer(pkt[scapy.Raw].load)
+            print("\nReceived packet: ")
             rcv_pkt.show()
 
     def recv(self):
