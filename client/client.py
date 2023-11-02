@@ -64,6 +64,7 @@ class MethodHandler:
         self.method_handlers = [None] * 256
         self.dtype_parser = DtypeParser()
         self.hashing = PearsonHashing()
+        self.subscribed_topics = {}
 
         self.__init__basic_method()
 
@@ -88,25 +89,76 @@ class MethodHandler:
         self.method_handlers[Method.Pong.value] = lambda *args: logger.info(f"Pong from {args[4]}:{args[5]}")
         
         # 0x02
-        def publish(*args):
-            logger.info(f"Publish to {args[4]}:{args[5]} | topic: {args[3]}")
-            # specific for different clients
+        self.method_handlers[Method.Publish.value] = lambda *args: logger.info(f"Publish from {args[4]}:{args[5]} | topic: {args[3]}")   
         
-        # 0x03   
-        def subscribe(*args):
-            logger.info(f"Subscribe to {args[4]}:{args[5]} | topic: {args[3]}")
-            # specific for different clients
+        # 0x03
+        self.method_handlers[Method.Subscribe.value] = lambda *args: logger.info(f"Subscribe from {args[4]}:{args[5]} | topic: {args[3]}") 
         
-        # 0x0   
+        # 0x04
         def unsubscribe(*args):
-            logger.info(f"Unsubscribe to {args[4]}:{args[5]} | topic: {args[3]}")
-            # specific for different clients
+            pass
+        
+        self.method_handlers[Method.Unsubscribe.value] = lambda *args: logger.info(f"Unsubscribe from {args[4]}:{args[5]} | topic: {args[3]}") 
+        
+        # 0x05
+        def approve_published_topic(*args):
+            pass
+        
+        self.method_handlers[Method.ApprovePublishedTopic.value] = approve_published_topic
+        
+        # 0x06
+        def reject_published_topic(*args):
+            pass
+        
+        self.method_handlers[Method.RejectPublishedTopic.value] = reject_published_topic
+        
+        # 0x07
+        def approve_subscribed_topic(*args):
+            self.subscribed_topics[args[3]] = args[0]
+        
+        self.method_handlers[Method.ApproveSubscribedTopic.value] = approve_subscribed_topic
+        
+        # 0x08
+        def reject_subscribed_topic(*args):
+            pass
+        
+        self.method_handlers[Method.RejectSubscribedTopic.value] = reject_subscribed_topic
+        
+        # 0x09
+        def get_all_topics(*args):
+            pass
+        
+        self.method_handlers[Method.GetAllTopics.value] = get_all_topics
+        
+        # 0x0A
+        def subscribe_all_topics(*args):
+            pass
+        
+        self.method_handlers[Method.SubscribeAllTopics.value] = subscribe_all_topics
         
         # 0x0B
-        def conn_ack(*args):
-            self._set_permutation(args[0])
-            logger.info(f"Connection Acknowledgement from {args[4]}:{args[5]}")
-            print("Connected")          
+        def connect(*args):
+            pass
+        
+        self.method_handlers[Method.Connect.value] = connect
+        
+        # 0x0C
+        def disconnect(*args):
+            pass
+        
+        self.method_handlers[Method.Disconnect.value] = disconnect
+        
+        # 0x0D
+        def connect_acknowledgement(*args):
+            pass
+        
+        self.method_handlers[Method.ConnectAcknowledgement.value] = connect_acknowledgement
+        
+        # 0x0E
+        def disconnect_acknowledgement(*args):
+            pass
+        
+        self.method_handlers[Method.DisconnectAcknowledgement.value] = disconnect_acknowledgement       
             
 
 
