@@ -5,7 +5,7 @@ from scapy.all import *
 from broker.loggings import logger
 from protocol.proto_py.utils import DtypeParser
 from protocol.proto_py.standards import Method, DType
-from protocol.proto_py.proto import CProto, PearsonHashing
+from protocol.proto_py.proto import CProto, PearsonHashing, CProtoLayer
 from broker.loggings import logger
 
 
@@ -15,7 +15,7 @@ class Client:
         self.dst_ip = dst
         self.dst_port = dport
         self.client_id = client_id
-        self.proto = CProto(src, dst, sport, dport)
+        self.proto = CProto(src, dst, sport, dport, verbose= False)
         self.proto.hashing.T = [i for i in range(2**8)]
         self.method_handlers = MethodHandler(self.proto)
 
@@ -43,31 +43,34 @@ class Client:
             self.proto.send(method, retain, auth, dtype, topic, msg)
 
     def callback(self, pkt):
-        if pkt[IP].src != self.dst_ip or pkt[TCP].sport != self.dst_port:
-            return # from someone else
+        # if pkt[IP].src != self.dst_ip or pkt[TCP].sport != self.dst_port:
+        #     print("From someone else")
+        #     return # from someone else
         
-        if pkt[TCP].dport == self.sport:
-            return # not for me
+        # if pkt[TCP].dport == self.sport:
+        #     print("Not for me")
+        #     return # not for me
         
-        try:
-            d_ip, d_port = pkt[IP].src, pkt[TCP].sport
-            rcv_pkt = CProto(pkt[Raw].load)
-            x = self.cprotoHandler(rcv_pkt,  d_ip, d_port)
-        except Exception as e:
-            logger.error(e)
+        if pkt[TCP].dport == self.sport or pkt[TCP].sport == self.dst_port:
+            try:
+                d_ip, d_port = pkt[IP].src, pkt[TCP].sport
+                rcv_pkt = CProtoLayer(pkt[Raw].load)
+                x = self.cprotoHandler(rcv_pkt,  d_ip, d_port)
+            except Exception as e:
+                # pkt.show()
+                logger.error(e)
 
     def cprotoHandler(self, pkt, dst_ip, dst_port):
         data = pkt.load if hasattr(pkt, 'load') else None
-        if data:
-            if pkt.hash != self.hashing(data):
-                logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
-                return
-        elif pkt.hash != 0:
-            logger.error("Corrupted message")
-            return
+        # if data:
+        #     if pkt.hash != self.hashing(data):
+        #         logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
+        #         return
+        # elif pkt.hash != 0:
+        #     logger.error("Corrupted message")
+        #     return
         
         # clients not necessarily need to save packet 
-
         self.method_handlers(pkt.method, pkt.auth, pkt.dtype, pkt.topic, data, dst_ip, dst_port)
         
 
@@ -94,6 +97,7 @@ class MethodHandler:
     def __call__(self, method, auth, dtype, topic, data, dst_ip, dst_port):
         data = self.dtype_parser.decode(dtype, data)
         self.sender.set_dst(dst_ip, dst_port)
+        print(f"{dst_ip}:{dst_port}"    )
         return self.method_handlers[method](data, auth, dtype, topic, dst_ip, dst_port)
 
     def _set_permutation(self, T):
@@ -127,7 +131,7 @@ class MethodHandler:
         def approve_published_topic(*args):
             pass
         
-        self.method_handlers[Method.ApprovePublishedTopic.value] = approve_published_topic
+        self.method_handlers[Method.AprrovePublishedTopic.value] = approve_published_topic
         
         # 0x06
         def reject_published_topic(*args):
@@ -139,7 +143,7 @@ class MethodHandler:
         def approve_subscribed_topic(*args):
             self.subscribed_topics[args[3]] = args[0]
         
-        self.method_handlers[Method.ApproveSubscribedTopic.value] = approve_subscribed_topic
+        self.method_handlers[Method.AprroveSubscribedTopic.value] = approve_subscribed_topic
         
         # 0x08
         def reject_subscribed_topic(*args):
