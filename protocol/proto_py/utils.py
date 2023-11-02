@@ -1,4 +1,6 @@
+import struct
 from typing import Callable, Optional, List
+from protocol.proto_py.standards import DType
 
 class DtypeParser:
     def __init__(self):
@@ -51,3 +53,12 @@ class DtypeParser:
         # array_byte [strictly 8-bit]
         self.encoder[0x12] = lambda _data: bytes(_data)
         self.decoder[0x12] = lambda _data: list(_data)
+
+        # float32
+        self.encoder[DType.Float32.value] = lambda _data: struct.pack('f', _data)
+        self.decoder[DType.Float32.value] = lambda _data: struct.unpack('f', _data)[0]
+
+        # float64
+        self.encoder[DType.Float64.value] = lambda _data: struct.pack('d', _data)
+        self.decoder[DType.Float64.value] = lambda _data: struct.unpack('d', _data)[0]
+        

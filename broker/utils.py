@@ -4,7 +4,7 @@ from protocol.proto_py.utils import DtypeParser
 from typing import Callable, Optional, List
 from queue import PriorityQueue
 from protocol.proto_py.standards import DType, Method
-
+from enum import Enum
 
 class Device:
     def __init__(self, ip, mac):
@@ -20,16 +20,16 @@ class AutherizedDevices:
         self.autherize_macs = []
         self.autherized_ips = []
 
-    def __add_ip(self, ip) -> None:
+    def _add_ip(self, ip) -> None:
         self.autherized_ips.append(ip)
 
-    def __add_mac(self, mac) -> None:
+    def _add_mac(self, mac) -> None:
         self.autherize_macs.append(mac)
 
-    def __remove_ip(self, ip) -> None:
+    def _remove_ip(self, ip) -> None:
         self.autherized_ips.remove(ip)
 
-    def __remove_mac(self, mac) -> None:
+    def _remove_mac(self, mac) -> None:
         self.autherize_macs.remove(mac)
 
     def __contains__(self, ip) -> bool:
@@ -42,7 +42,7 @@ class AutherizedDevices:
 class MethodHandler:
     def __init__(self):
         self.method_handlers: List[Optional[Callable]] = [None] * 64
-        self.sender = CProto(src="10.38.2.88")
+        self.sender = CProto(src="10.38.2.88", verbose=False)
         self.dtype_parser = DtypeParser()
         self.autherized_devices = AutherizedDevices()
 
@@ -67,20 +67,20 @@ class MethodHandler:
     def __init__basic_method(self):
         # 0x00
         def ping(*args):
-            logger.info("Ping")
+            logger.info(f"Ping from {args[4]}:{args[5]}")
             # send a pong message
-            self.sender.send(Method.Pong.value, 0x0, 0x0, DType.Null, 0x00)
+            self.sender.send(Method.Pong.value, 0x0, 0x0, DType.Null.value, 0x00)
 
         self.method_handlers[Method.Ping.value] = ping
 
         # 0x01
-        self.method_handlers[Method.Pong.value] = lambda *args: logger.info("Pong")
+        self.method_handlers[Method.Pong.value] = lambda *args: logger.info(f"Pong from {args[4]}:{args[5]}")
 
         # 0x0B -> Connect Method  send Acknowledgement or Disconnect
         def connect(*args):
             # send permutation table
-            logger.info(f"Connect request from : {args[5]}:{args[6]}")
-            self.autherized_devices.__add_ip(args[5])
+            logger.info(f"Connect request from : {args[4]}:{args[5]}")
+            self.autherized_devices._add_ip(args[4])
             p_table = self.sender.hashing.T
             self._set_permutation([i for i in range(256)])
             self.sender.send(
@@ -91,22 +91,22 @@ class MethodHandler:
         self.method_handlers[0x0B] = connect
 
         self.method_handlers[0x0C] = lambda *args: logger.info(
-            f"[{args[5]}:{args[6]}] Disconnect"
+            f"[{args[4]}:{args[5]}] Disconnect"
         )
         self.method_handlers[0x0D] = lambda *args: logger.info(
-            f"[{args[5]}:{args[6]}] Connect Acknowledgement"
+            f"[{args[4]}:{args[5]}] Connect Acknowledgement"
         )
 
         # 0x02 -> Publish topic
         def topic_publish(*args):
-            logger.info(f"[{args[5]}:{args[6]}] Publish topic : {args[3]}")
+            logger.info(f"[{args[4]}:{args[5]}] Publish topic : {args[3]}")
             if self.avilable_topics.empty():
-                logger.error(f"[{args[5]}:{args[6]}] No avilable topic")
+                logger.error(f"[{args[4]}:{args[5]}] No avilable topic")
                 self.sender.send(0x07, 0x0, 0x0, 0x00, 0x00)
                 return
 
             elif args[3] in self.topics:
-                logger.error(f"[{args[5]}:{args[6]}] Topic already published")
+                logger.error(f"[{args[4]}:{args[5]}] Topic already published")
                 self.sender.send(
                     Method.RejectPublishedTopic,
                     0x0,
@@ -121,20 +121,60 @@ class MethodHandler:
                 "source": [args[5]],
                 "subscribers": [],
             }
-            logger.info(f"[{args[5]}:{args[6]}] Topic {args[0]} published on {topic}")
+            logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} published on {topic}")
             self.sender.send(
                 Method.AprrovePublishedTopic.value,
                 0x0,
                 0x0,
-                DType.Byte,
+                DType.Byte.value,
                 0x00,
                 self.dtype_parser.encode(DType.Byte.value, topic),
             )
         self.method_handlers[Method.Publish.value] = topic_publish
 
-        self.method_handlers[Method.AprrovePublishedTopic.value] = lambda *args: logger.info(f"[{args[5]}:{args[6]}] Topic {args[0]} Topic Approved")
+        self.method_handlers[Method.AprrovePublishedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Topic Approved")
+        self.method_handlers[Method.RejectPublishedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Topic Rejected")
 
-        
+        # 0x03 -> Subscribe topic
+        def subsribe(*args):
+            logger.info(f"[{args[4]}:{args[5]}] Subscription request on topic : {args[3]}")
+            # check if the topic exists
+            if args[3] not in self.topics:
+                logger.error(f"[{args[4]}:{args[5]}] Topic {args[3]} does not exists")
+                self.sender.send(
+                    Method.RejectSubscribedTopic.value,
+                    0x0,
+                    0x0,
+                    DType.Byte.value,
+                    self.dtype_parser.encode(DType.Byte.value, Rejection.NO_TOPIC_FOUND.value),
+                )
+                return
+            
+            # check if the device is autherized : TODO
+
+            self.topics[args[3]]["subscribers"].append(f"{args[4]}:{args[5]}")
+            logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
+            self.sender.send(
+                Method.AprroveSubscribedTopic.value,
+                0x0,
+                0x0,
+                DType.Null.value,
+                args[3],
+            )
+
+        self.method_handlers[Method.Subscribe.value] = subsribe
+
+        self.method_handlers[Method.AprroveSubscribedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
+        self.method_handlers[Method.RejectSubscribedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Subscription to topic {args[3]} rejected")
+
+        def get_all_topic(*args):
+            logger.info(f"[{args[4]}:{args[5]}] requested all topics")
+            
+            all_topics = {}
+            for key, value in self.topics.items():
+                all_topics[key] = value["name"]
+            
+            # need to send in map or json format or may be array of string  ?
 
     def __init__root_method(self):
         pass
@@ -144,3 +184,7 @@ class MethodHandler:
 
     def __init__control_method(self):
         pass
+
+
+class Rejection(Enum):
+    NO_TOPIC_FOUND = 0x01
