@@ -15,100 +15,17 @@ class Client:
         self.proto = CProto(src, dst, sport, dport)
         self.dtype_parser = DtypeParser()
         self.hashing = PearsonHashing()
-        self.send_queue = queue.Queue()
-        self.stop_threads = True
-
-    def connect(self, ip, port):
-        self.proto.set_dst(ip, port)
-        self.proto.send(method=Method.Connect, retain=0x0, auth=0x0, dtype=DType.Null, topic=0x00, msg=None)
-        if(self.recv_conn_ack()):
-            print(f"[ Client {self.client_id} ]: Connected to {ip}:{port}")
-            self.stop_threads = False 
-            self.send_recv()
-        else:
-            print(f"[ Client {self.client_id} ]: Connection failed")
-            
-    def recv_conn_ack(self):
-        # Create a packet filter to capture packets with the acknowledgment method
-        acknowledgment_filter = (
-            f"ip dst {dst_ip} and ip src {src_ip} "
-            f"and tcp dst port {dst_port} and tcp src port {src_port} "
-            f"and CProtoLayer.method == {Method.ConnectAcknowledgement.value}"
-        )
-
-        # Use Scapy's sniff function to capture the acknowledgment packet
-        acknowledgment_packet = sniff(filter=acknowledgment_filter, count=1)[0]
-        
-        if(acknowledgment_packet):
-            dtype = acknowledgment_packet[CProtoLayer].dtype
-            encoded_msg = acknowledgment_packet[Raw].load
-            self.hashing.T = self.dtype_parser.decode(dtype, encoded_msg)
-            acknowledgment_packet[CProtoLayer].show()
-            print(self.hashing.T)
-            print("connecting...")
-            return True
-        
-        return False
-    
-    def recv_disconn_ack(self):
-        # Create a packet filter to capture packets with the acknowledgment method
-        acknowledgment_filter = (
-            f"ip dst {dst_ip} and ip src {src_ip} "
-            f"and tcp dst port {dst_port} and tcp src port {src_port} "
-            f"and CProtoLayer.method == {Method.DisconnectAcknowledgement.value}"
-        )
-
-        # Use Scapy's sniff function to capture the acknowledgment packet
-        acknowledgment_packet = sniff(filter=acknowledgment_filter, count=1)[0]
-        
-        if(acknowledgment_packet):
-            self.hashing.T = [i for i in range(2**8)]
-            acknowledgment_packet[CProtoLayer].show()
-            print(self.hashing.T)
-            print("Disconnecting...")
-            return True
-        
-        return False
-
-        
-    def disconnect(self):
-        self.proto.send(method=Method.Disconnect, retain=0x0, auth=0x0, dtype=DType.Null, topic=0x00, msg=null)
-        if(self.recv_disconn_ack()):
-            print(f"[ Client {self.client_id} ]: Disconnected from {ip}:{port}")
-            self.stop_threads = True
-            self.send_thread.join()
-            self.recv_thread.join()
-        else:
-            print(f"[ Client {self.client_id} ]: Disconnection failed")
-            
-        
-    def send_recv(self):
-        self.send_thread = threading.Thread(target=self.send_thread_func)
-        self.recv_thread = threading.Thread(target=self.recv_thread_func)
-        
-        self.send_thread.start()
-        self.recv_thread.start()
-        
-    def send_thread_func(self):
-        i = 0
-        while not self.stop_threads:
-            send_queue.put([Method.Ping, 0x0, 0x0, DType.String, 0x00, f"hello{i}"])
-            if not self.send_queue.empty():
-                msg = self.send_queue.get()
-                self.proto.send(method=msg[0], retain=msg[1], auth=msg[2], dtype=msg[3], topic=msg[4], msg=msg[5])
-                self.send_queue.task_done()
-                i += 1
-    
-    def recv_thread_func(self):
-        while not self.stop_threads:
-            self.proto.recv()
     
     def cli(self):
         print(f"[ Client {self.client_id} ]: Starting at port {self.sport}")
         print(">>> [method] [retain] [auth] [dtype] [topic] [...msg]")
 
         while True:
-            token = input(">>> ").split()
+            try:
+                token = input(">>> ").split()
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt")
+                break
             # example: 
             if len(token) == 0:
                 break
@@ -120,8 +37,17 @@ class Client:
             topic = int(token[4])
             msg = " ".join(token[5:]) if len(token) > 5  else None
 
+            self.proto.send(method, retain, auth, dtype, topic, msg)
+            
     def callback(self, pkt):
-        pass
+        if (
+            scapy.IP in pkt
+            and pkt[scapy.TCP].sport == 7997
+            and pkt[scapy.TCP].dport == 9779
+        ):
+            rcv_pkt = CProtoLayer(pkt[scapy.Raw].load)
+            print("\nReceived packet: ")
+            rcv_pkt.show()
 
     def start_listener(self):
         def listener_thread_func():
@@ -160,9 +86,31 @@ class MethodHandler:
 
         # 0x01
         self.method_handlers[Method.Pong.value] = lambda *args: logger.info(f"Pong from {args[4]}:{args[5]}")
+        
+        # 0x02
+        def publish(*args):
+            logger.info(f"Publish to {args[4]}:{args[5]} | topic: {args[3]}")
+            # specific for different clients
+        
+        # 0x03   
+        def subscribe(*args):
+            logger.info(f"Subscribe to {args[4]}:{args[5]} | topic: {args[3]}")
+            # specific for different clients
+        
+        # 0x0   
+        def unsubscribe(*args):
+            logger.info(f"Unsubscribe to {args[4]}:{args[5]} | topic: {args[3]}")
+            # specific for different clients
+        
+        # 0x0B
+        def conn_ack(*args):
+            self._set_permutation(args[0])
+            logger.info(f"Connection Acknowledgement from {args[4]}:{args[5]}")
+            print("Connected")          
+            
 
 
 if __name__ == "__main__":
-    client = Client("10.35.0.93", "10.38.0.242", 9779, 9779)
+    client = Client("10.35.0.93", "10.38.2.88", 9779, 9779)
     client.start_listener()
     client.cli()
