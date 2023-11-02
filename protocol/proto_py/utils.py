@@ -62,3 +62,6 @@ class DtypeParser:
         self.encoder[DType.Float64.value] = lambda _data: struct.pack('d', _data)
         self.decoder[DType.Float64.value] = lambda _data: struct.unpack('d', _data)[0]
         
+        # String
+        self.encoder[DType.String.value] = lambda _data: _data.encode('utf-8')
+        self.decoder[DType.String.value] = lambda _data: _data.decode('utf-8')
