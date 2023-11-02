@@ -37,8 +37,8 @@ class Method(Enum):
     Unsubscribe = 0x04
     AprrovePublishedTopic = 0x05
     RejectPublishedTopic = 0x06
-    NoAvilableTopic = 0x07
-    TopicNotFound = 0x08
+    AprroveSubscribedTopic = 0x07
+    RejectSubscribedTopic = 0x08
     GetAllTopics = 0x09
     SubscribeAllTopics = 0x0A
     Connect = 0x0B
