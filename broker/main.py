@@ -30,6 +30,7 @@ class Broker:
         
     
     def cprotoHandler(self, pkt, dst_ip, dst_port):
+        # pkt.show()
         data = pkt.load if hasattr(pkt, 'load') else None
         ### check hash for corrupted message : TODO
         if data:

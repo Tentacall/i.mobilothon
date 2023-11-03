@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class DType(Enum):
     Null = 0
     Bool = 1
@@ -28,6 +29,7 @@ class DType(Enum):
     ArrayFloat64 = 0x1A
     ArrayFloat128 = 0x1B
 
+
 class Method(Enum):
     # basic methods
     Ping = 0x00
@@ -45,6 +47,5 @@ class Method(Enum):
     Disconnect = 0x0C
     ConnectAcknowledgement = 0x0D
     DisconnectAcknowledgement = 0x0E
-    
+
     # Root methods
-    

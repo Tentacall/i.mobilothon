@@ -119,7 +119,4 @@ class CProto:
 
 if __name__ == "__main__":
     # test
-    hashing = PearsonHashing()
-    print(hashing("Hello"))
-    print(hashing(8368643))
-    print(hashing(0x0074657465745))
+    sender = CProto()

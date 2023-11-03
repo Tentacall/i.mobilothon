@@ -6,6 +6,7 @@ from queue import PriorityQueue
 from protocol.proto_py.standards import DType, Method
 from enum import Enum
 
+
 class Device:
     def __init__(self, ip, mac):
         self.id = None
@@ -47,7 +48,7 @@ class MethodHandler:
         self.autherized_devices = AutherizedDevices()
 
         self.avilable_topics = PriorityQueue()
-        for i in range(256):
+        for i in range(1,256):
             self.avilable_topics.put(i)
         self.topics = {}
 
@@ -74,7 +75,9 @@ class MethodHandler:
         self.method_handlers[Method.Ping.value] = ping
 
         # 0x01
-        self.method_handlers[Method.Pong.value] = lambda *args: logger.info(f"Pong from {args[4]}:{args[5]}")
+        self.method_handlers[Method.Pong.value] = lambda *args: logger.info(
+            f"Pong from {args[4]}:{args[5]}"
+        )
 
         # 0x0B -> Connect Method  send Acknowledgement or Disconnect
         def connect(*args):
@@ -102,19 +105,23 @@ class MethodHandler:
             logger.info(f"[{args[4]}:{args[5]}] Publish topic : {args[3]}")
             if self.avilable_topics.empty():
                 logger.error(f"[{args[4]}:{args[5]}] No avilable topic")
-                self.sender.send(0x06, 0x0, 0x0, 0x00, 0x00)
-                return
-
-            elif args[3] in self.topics:
-                logger.error(f"[{args[4]}:{args[5]}] Topic already published")
                 self.sender.send(
-                    Method.RejectPublishedTopic,
-                    0x0,
-                    0x0,
-                    DType.String.value,
-                    self.dtype_parser.encode(DType.String.value, "Topic already published"),
+                    Method.RejectPublishedTopic.value, 0x0, 0x0, 0x00, 0x00
                 )
                 return
+
+            for key, value in self.topics.items():
+                if value["name"] == args[0]:
+                    logger.error(f"[{args[4]}:{args[5]}] Topic already published")
+                    self.sender.send(
+                        Method.RejectPublishedTopic.value,
+                        0x0,
+                        0x0,
+                        args[2],
+                        0x00,
+                        args[0],
+                    )
+                    return
             topic = self.avilable_topics.get()
             self.topics[topic] = {
                 "name": args[0],
@@ -126,18 +133,29 @@ class MethodHandler:
                 Method.AprrovePublishedTopic.value,
                 0x0,
                 0x0,
-                DType.Byte.value,
-                0x00,
+                args[2],
                 self.dtype_parser.encode(DType.Byte.value, topic),
+                args[0],
             )
+
         self.method_handlers[Method.Publish.value] = topic_publish
 
-        self.method_handlers[Method.AprrovePublishedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Topic Approved")
-        self.method_handlers[Method.RejectPublishedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Topic Rejected")
+        self.method_handlers[
+            Method.AprrovePublishedTopic.value
+        ] = lambda *args: logger.info(
+            f"[{args[4]}:{args[5]}] Topic {args[0]} Approved"
+        )
+        self.method_handlers[
+            Method.RejectPublishedTopic.value
+        ] = lambda *args: logger.info(
+            f"[{args[4]}:{args[5]}] Topic {args[0]} Rejected"
+        )
 
         # 0x03 -> Subscribe topic
         def subsribe(*args):
-            logger.info(f"[{args[4]}:{args[5]}] Subscription request on topic : {args[3]}")
+            logger.info(
+                f"[{args[4]}:{args[5]}] Subscription request on topic : {args[3]}"
+            )
             # check if the topic exists
             if args[3] not in self.topics:
                 logger.error(f"[{args[4]}:{args[5]}] Topic {args[3]} does not exists")
@@ -146,10 +164,12 @@ class MethodHandler:
                     0x0,
                     0x0,
                     DType.Byte.value,
-                    self.dtype_parser.encode(DType.Byte.value, Rejection.NO_TOPIC_FOUND.value),
+                    self.dtype_parser.encode(
+                        DType.Byte.value, Rejection.NO_TOPIC_FOUND.value
+                    ),
                 )
                 return
-            
+
             # check if the device is autherized : TODO
 
             self.topics[args[3]]["subscribers"].append(f"{args[4]}:{args[5]}")
@@ -164,16 +184,24 @@ class MethodHandler:
 
         self.method_handlers[Method.Subscribe.value] = subsribe
 
-        self.method_handlers[Method.AprroveSubscribedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
-        self.method_handlers[Method.RejectSubscribedTopic.value] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Subscription to topic {args[3]} rejected")
+        self.method_handlers[
+            Method.AprroveSubscribedTopic.value
+        ] = lambda *args: logger.info(
+            f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}"
+        )
+        self.method_handlers[
+            Method.RejectSubscribedTopic.value
+        ] = lambda *args: logger.info(
+            f"[{args[4]}:{args[5]}] Subscription to topic {args[3]} rejected"
+        )
 
         def get_all_topic(*args):
             logger.info(f"[{args[4]}:{args[5]}] requested all topics")
-            
+
             all_topics = {}
             for key, value in self.topics.items():
                 all_topics[key] = value["name"]
-            
+
             # need to send in map or json format or may be array of string  ?
 
     def __init__root_method(self):
