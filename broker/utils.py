@@ -102,7 +102,7 @@ class MethodHandler:
             logger.info(f"[{args[4]}:{args[5]}] Publish topic : {args[3]}")
             if self.avilable_topics.empty():
                 logger.error(f"[{args[4]}:{args[5]}] No avilable topic")
-                self.sender.send(0x07, 0x0, 0x0, 0x00, 0x00)
+                self.sender.send(0x06, 0x0, 0x0, 0x00, 0x00)
                 return
 
             elif args[3] in self.topics:
