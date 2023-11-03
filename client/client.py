@@ -133,6 +133,6 @@ class MethodHandler:
 
 
 if __name__ == "__main__":
-    client = Client("10.35.0.93", "10.38.2.88", 9779, 9779)
+    client = Client("127.0.0.1", "172.17.0.2", 9779, 9779)
     client.start_listener()
     client.cli()
