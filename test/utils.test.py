@@ -1,5 +1,6 @@
 import unittest
 from protocol.proto_py.utils import DtypeParser
+from protocol.proto_py.standards import DType
 
 class TestDtypeParser(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -46,6 +47,10 @@ class TestDtypeParser(unittest.TestCase):
     
     def test_array_byte(self):
         self.generate_test(0x12, [0x01, 0x02, 0x03])
+
+    def test_json(self):
+        data = {'a': 1, 'b': 2}
+        self.generate_test(DType.Json.value, data)
 
 if __name__ == '__main__':
     unittest.main() 

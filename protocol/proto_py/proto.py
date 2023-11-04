@@ -8,7 +8,6 @@ class PearsonHashing:
         self.T = [i for i in range(2**8)]
         self.length = 8
         random.shuffle(self.T)
-        self.hash = 0
 
     def __call__(self, msg):
         if type(msg) == bytes:

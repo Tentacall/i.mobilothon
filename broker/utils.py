@@ -48,7 +48,7 @@ class MethodHandler:
         self.autherized_devices = AutherizedDevices()
 
         self.avilable_topics = PriorityQueue()
-        for i in range(1,256):
+        for i in range(1, 256):
             self.avilable_topics.put(i)
         self.topics = {}
 
@@ -142,14 +142,10 @@ class MethodHandler:
 
         self.method_handlers[
             Method.AprrovePublishedTopic.value
-        ] = lambda *args: logger.info(
-            f"[{args[4]}:{args[5]}] Topic {args[0]} Approved"
-        )
+        ] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Approved")
         self.method_handlers[
             Method.RejectPublishedTopic.value
-        ] = lambda *args: logger.info(
-            f"[{args[4]}:{args[5]}] Topic {args[0]} Rejected"
-        )
+        ] = lambda *args: logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} Rejected")
 
         # 0x03 -> Subscribe topic
         def subsribe(*args):
@@ -196,13 +192,26 @@ class MethodHandler:
         )
 
         def get_all_topic(*args):
-            logger.info(f"[{args[4]}:{args[5]}] requested all topics")
 
             all_topics = {}
             for key, value in self.topics.items():
-                all_topics[key] = value["name"]
+                all_topics[value["name"]] = int(key)
 
-            # need to send in map or json format or may be array of string  ?
+            self.sender.send(
+                Method.AllTopics.value,
+                0x0,
+                0x0,
+                DType.Json.value,
+                0x00,
+                all_topics
+            )
+
+        self.method_handlers[Method.GetAllTopics.value] = get_all_topic
+
+        self.method_handlers[Method.AllTopics.value] = lambda *args: logger.info(
+            f"[{args[4]}:{args[5]}] All topic send."
+        )
+        # need to send in map or json format or may be array of string  ?
 
     def __init__root_method(self):
         pass

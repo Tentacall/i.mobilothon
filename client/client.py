@@ -23,10 +23,11 @@ class Client:
         # connect to broker
         self.proto.send(Method.Connect.value, 0x0, 0x0, DType.Null.value, 0x00)
 
-        # publish a topic
-        topic = "topic1"
-        self.method_handlers.topics[topic] = None
-        self.proto.send(Method.Publish.value, 0x0, 0x0, DType.String.value, 0x00, topic)
+        # self.proto.send(Method.Ping.value, 0, 0, DType.Json.value, 0, {"hello": 1})
+        # topic publishing >>> 2 0 0 12 0 topic1
+        # topic subscribing >>> 3 0 0 0 1
+        # topic unsubscribing >>> 4 0 0 0 1
+        # topic get_all_topics >>> 9 0 0 0 0
 
         # while (
         #     topic in self.method_handlers.topics
@@ -54,7 +55,6 @@ class Client:
             dtype = int(token[3])
             topic = int(token[4])
             msg = " ".join(token[5:]) if len(token) > 5 else None
-
             self.proto.send(method, retain, auth, dtype, topic, msg)
 
     def callback(self, pkt):
@@ -181,17 +181,18 @@ class MethodHandler:
             Method.RejectSubscribedTopic.value
         ] = reject_subscribed_topic
 
-        # 0x09
-        def get_all_topics(*args):
-            pass
-
-        self.method_handlers[Method.GetAllTopics.value] = get_all_topics
+        # 0x09 : Client shouldn't handle this
+        self.method_handlers[Method.GetAllTopics.value] = lambda *args: logger.info(
+            f"Get all topics request from {args[4]}:{args[5]}"
+        )
 
         # 0x0A
-        def subscribe_all_topics(*args):
-            pass
+        def all_topics(*args):
+            logger.info(f"Topics :")
+            for id, topic in args[0].items():
+                logger.info(f"\t{id} - {topic}")
 
-        self.method_handlers[Method.SubscribeAllTopics.value] = subscribe_all_topics
+        self.method_handlers[Method.AllTopics.value] = all_topics
 
         # 0x0B
         def connect(*args):

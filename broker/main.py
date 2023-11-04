@@ -37,14 +37,13 @@ class Broker:
             if pkt.hash != self.hashing(data):
                 logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
                 return
-        elif pkt.hash != 0:
-            logger.error("Corrupted message")
-            return
+        # elif pkt.hash != 0:
+        #     logger.error("Corrupted message")
+        #     return
         
         # save packet to `{topic}{time}.pcap` file : TODO
         # if self.topics[pkt.topic] is None:
-        #     self.topics[pkt.topic] = scapy.PcapWriter(f"{pkt.topic}{pkt.time}.pcap", append=True)
-        
+        #     self.topics[pkt.topic] = scapy.PcapWriter(f"{pkt.topic}{pkt.time}.pcap", append=True)        
 
 
         # TODO: optimize this  

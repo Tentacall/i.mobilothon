@@ -29,6 +29,8 @@ class DType(Enum):
     ArrayFloat64 = 0x1A
     ArrayFloat128 = 0x1B
 
+    Json = 0x20
+
 
 class Method(Enum):
     # basic methods
@@ -42,7 +44,7 @@ class Method(Enum):
     AprroveSubscribedTopic = 0x07
     RejectSubscribedTopic = 0x08
     GetAllTopics = 0x09
-    SubscribeAllTopics = 0x0A
+    AllTopics = 0x0A
     Connect = 0x0B
     Disconnect = 0x0C
     ConnectAcknowledgement = 0x0D

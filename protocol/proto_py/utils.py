@@ -1,4 +1,5 @@
 import struct
+import json
 from typing import Callable, Optional, List
 from protocol.proto_py.standards import DType
 
@@ -65,3 +66,14 @@ class DtypeParser:
         # String
         self.encoder[DType.String.value] = lambda _data: _data.encode('utf-8')
         self.decoder[DType.String.value] = lambda _data: _data.decode('utf-8')
+
+        # json
+        def json_decoded(_data):
+            try:
+                return json.loads(_data.decode('utf-8'))
+            except Exception as e:
+                print(e)
+                return {}
+
+        self.encoder[DType.Json.value] = lambda _data: json.dumps(_data).encode('utf-8')
+        self.decoder[DType.Json.value] = json_decoded
