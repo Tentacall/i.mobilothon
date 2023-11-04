@@ -160,16 +160,16 @@ class MethodHandler:
                     0x0,
                     0x0,
                     DType.Byte.value,
-                    self.dtype_parser.encode(
-                        DType.Byte.value, Rejection.NO_TOPIC_FOUND.value
-                    ),
+                    args[3],
+                )
+                logger.error(
+                    f"[{args[4]}:{args[5]}] Subscription request rejected"
                 )
                 return
 
             # check if the device is autherized : TODO
 
             self.topics[args[3]]["subscribers"].append(f"{args[4]}:{args[5]}")
-            logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
             self.sender.send(
                 Method.AprroveSubscribedTopic.value,
                 0x0,
@@ -177,6 +177,7 @@ class MethodHandler:
                 DType.Null.value,
                 args[3],
             )
+            logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
 
         self.method_handlers[Method.Subscribe.value] = subsribe
 

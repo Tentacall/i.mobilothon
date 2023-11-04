@@ -167,7 +167,7 @@ class MethodHandler:
 
         # 0x07
         def approve_subscribed_topic(*args):
-            self.subscribed_topics[args[3]] = args[0]
+            logger.info(f"Subscribed to topic id: {args[3]}")
 
         self.method_handlers[
             Method.AprroveSubscribedTopic.value
@@ -175,7 +175,7 @@ class MethodHandler:
 
         # 0x08
         def reject_subscribed_topic(*args):
-            pass
+            logger.error(f"Rejected to subscribe to topic id: {args[3]}")
 
         self.method_handlers[
             Method.RejectSubscribedTopic.value
@@ -194,11 +194,7 @@ class MethodHandler:
 
         self.method_handlers[Method.AllTopics.value] = all_topics
 
-        # 0x0B
-        def connect(*args):
-            pass
-
-        self.method_handlers[Method.Connect.value] = connect
+        self.method_handlers[Method.Connect.value] = lambda *args: logger.warning("Clinet shouldn't handle this")
 
         # 0x0C
         def disconnect(*args):
