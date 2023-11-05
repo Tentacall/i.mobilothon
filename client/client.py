@@ -18,6 +18,8 @@ class Client:
         self.proto = CProto(src, dst, sport, dport, verbose=False)
         self.proto.hashing.T = [i for i in range(2**8)]
         self.method_handlers = MethodHandler(self.proto)
+        self.selfip = get_if_addr(conf.iface)
+        logger.info(f"Client {self.client_id} @ip {self.selfip} initialized")
 
     def cli(self):
         # connect to broker
@@ -28,13 +30,6 @@ class Client:
         # topic subscribing >>> 3 0 0 0 1
         # topic unsubscribing >>> 4 0 0 0 1
         # topic get_all_topics >>> 9 0 0 0 0
-
-        # while (
-        #     topic in self.method_handlers.topics
-        #     and self.method_handlers.topics[topic] is None
-        # ):
-        #     # waiting for approval or rejection
-        #     time.sleep(0.5)
 
         print(f"[ Client {self.client_id} ]: Starting at port {self.sport}")
         print(">>> [method] [retain] [auth] [dtype] [topic] [...msg]")
@@ -58,44 +53,39 @@ class Client:
             self.proto.send(method, retain, auth, dtype, topic, msg)
 
     def callback(self, pkt):
-        # if pkt[IP].src != self.dst_ip or pkt[TCP].sport != self.dst_port:
-        #     print("From someone else")
-        #     return # from someone else
-
-        # if pkt[TCP].dport == self.sport:
-        #     print("Not for me")
-        #     return # not for me
-
-        if pkt[TCP].dport == self.sport and pkt[TCP].sport == self.dst_port:
+        if pkt[TCP].dport == self.sport and pkt[IP].src == self.dst_ip:
             try:
                 d_ip, d_port = pkt[IP].src, pkt[TCP].sport
                 rcv_pkt = CProtoLayer(pkt[Raw].load)
                 x = self.cprotoHandler(rcv_pkt, d_ip, d_port)
             except Exception as e:
-                # pkt.show()
-                logger.error(e)
+                if pkt[TCP].flags & 0x10 != 0:
+                    pass # tcp acknoledgement
+                else:
+                    logger.error(e)
 
     def cprotoHandler(self, pkt, dst_ip, dst_port):
         data = pkt.load if hasattr(pkt, "load") else None
-        # if data:
-        #     if pkt.hash != self.hashing(data):
-        #         logger.error(f"Corrupted message ({pkt.hash} != {self.hashing(data)})")
-        #         return
-        # elif pkt.hash != 0:
-        #     logger.error("Corrupted message")
-        #     return
+        if data:
+            if pkt.hash != self.proto.hashing(data):
+                logger.error(f"Corrupted message ({pkt.hash} != {self.proto.hashing(data)})")
+                return
+        elif pkt.hash != 0:
+            logger.error("Corrupted message")
+            return
 
         # clients not necessarily need to save packet
         self.method_handlers(
             pkt.method, pkt.auth, pkt.dtype, pkt.topic, data, dst_ip, dst_port
         )
+    
+    def listener_thread_func(self):
+        print(f"Listening on port {self.sport}")
+        sniff(filter="tcp", iface="docker0", prn=self.callback)
 
     def start_listener(self):
-        def listener_thread_func():
-            print(f"Listening on port {self.sport}")
-            sniff(filter="tcp", iface="docker0", prn=self.callback)
 
-        self.listener_thread = threading.Thread(target=listener_thread_func)
+        self.listener_thread = threading.Thread(target=self.listener_thread_func)
         self.listener_thread.daemon = True
         self.listener_thread.start()
 
@@ -109,6 +99,7 @@ class MethodHandler:
         self.topics = {}
         self.sender = sender
         self.__init__basic_method()
+        self.__init__data_method()
 
     def __call__(self, method, auth, dtype, topic, data, dst_ip, dst_port):
         data = self.dtype_parser.decode(dtype, data)
@@ -194,7 +185,9 @@ class MethodHandler:
 
         self.method_handlers[Method.AllTopics.value] = all_topics
 
-        self.method_handlers[Method.Connect.value] = lambda *args: logger.warning("Clinet shouldn't handle this")
+        self.method_handlers[Method.Connect.value] = lambda *args: logger.warning(
+            "Client shouldn't handle this"
+        )
 
         # 0x0C
         def disconnect(*args):
@@ -220,10 +213,19 @@ class MethodHandler:
             Method.DisconnectAcknowledgement.value
         ] = disconnect_acknowledgement
 
+    def __init__data_method(self):
+        # data tranfer methods
+        self.method_handlers[Method.DataTransfer.value] = lambda *args: logger.info(
+            f"Data recieved from [{args[4]}:{args[5]}] on topic {args[3]}. Data : {args[0]}"
+        )
+
+        self.method_handlers[Method.DataTransferAcknowledgement.value] = lambda *args: logger.info("Data Transfer Acknolegement")
+        self.method_handlers[Method.DataTransferReject.value] = lambda *args: logger.info("Transfered Data Rejected")
 
 if __name__ == "__main__":
     client = Client("172.17.0.1", "172.17.0.2", 9779, 9779)
     client.start_listener()
+    # client.sender()
     client.cli()
 
     # connect message : 11 0 0 0 0

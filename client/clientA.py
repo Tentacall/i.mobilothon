@@ -1,36 +1,48 @@
-from client import Client
+import time
+from scapy.all import *
+from client import Client, MethodHandler
+from broker.loggings import logger
 from protocol.proto_py.standards import Method, DType
 
 class ClientA(Client):
-    def __init__(self, src, dst, sport, dport) -> None:
-        self.sport = sport
-        super().__init__(src, dst, sport, dport)
+    def __init__(self, src, dst, sport, dport, client_id=0) -> None:
+        super().__init__(src, dst, sport, dport, client_id)
 
-    # def connect(self, ip, port):
-    #     self.proto.set_dst(ip, port)
-    #     self.proto.send(Method.CONNECT, False, False, DType.INT, 0, self.sport)
-    
-    # def cli(self):
-    #     print(f"[ Client A ]: Starting at port {self.sport}")
-    #     print(">>> [method] [retain] [auth] [dtype] [topic] [...msg]")
+    def sender(self):
+        # connect to broker
+        self.proto.send(Method.Connect.value, 0x0, 0x0, DType.Null.value, 0x00)
+        time.sleep(2)
+        # publish topic
+        self.proto.send(Method.Publish.value, 0x0, 0x0, DType.String.value, 0x00, "time")
+        # : TODO : retry n times if rejected then exit
+        time.sleep(2)
+        try:
+            topic_id = self.method_handlers.topics["time"]
+        except:
+            topic_id = 1
+        logger.info(f"Topic id : {topic_id}")
+        count = 100
+        while count > 0:
+            try:
+                count -= 1
+                t = time.strftime("%H:%M:%S")
+                self.proto.set_dst(self.dst_ip, self.dst_port)
+                self.proto.send(Method.DataTransfer.value, 0x0, 0x0, DType.String.value, topic_id, t)
+                logger.info(f"Data sent : {t}")
+                time.sleep(2)
+            except:
+                logger.error("Exiting client")
+                break
+    def listener_thread_func(self):
+        print(f"Listening on port {self.sport}")
+        sniff(filter="tcp", prn=self.callback)
 
-    #     while True:
-    #         token = input(">>> ").split()
-    #         # example: 
-    #         if len(token) == 0:
-    #             break
-            
-    #         method = int(token[0])
-    #         retain = bool(int(token[1]))
-    #         auth = bool(int(token[2]))
-    #         dtype = int(token[3])
-    #         topic = int(token[4])
-    #         msg = " ".join(token[5:]) if len(token) > 5  else None
 
-    #         self.proto.send(method, retain, auth, dtype, topic, msg)
+if __name__ == "__main__":
+    clientA = ClientA("172.17.0.1", "172.17.0.2", 9779, 9779, 1)
+    clientA.start_listener()
+    clientA.sender()
 
-
-
-if __name__ == '__main__':
-    client = ClientA("10.38.2.88", "10.35.0.93", 9000, 9779)
-    client.cli()
+    # client = Client("172.17.0.1", "172.17.0.2", 9779, 9779)
+    # client.start_listener()
+    # client.cli()

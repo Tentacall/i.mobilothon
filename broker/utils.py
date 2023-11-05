@@ -108,35 +108,38 @@ class MethodHandler:
                 self.sender.send(
                     Method.RejectPublishedTopic.value, 0x0, 0x0, 0x00, 0x00
                 )
-                return
-
-            for key, value in self.topics.items():
-                if value["name"] == args[0]:
-                    logger.error(f"[{args[4]}:{args[5]}] Topic already published")
+            
+            else:
+                done = False
+                for key, value in self.topics.items():
+                    if value["name"] == args[0]:
+                        logger.error(f"[{args[4]}:{args[5]}] Topic already published")
+                        self.sender.send(
+                            Method.RejectPublishedTopic.value,
+                            0x0,
+                            0x0,
+                            args[2],
+                            0x00,
+                            args[0],
+                        )
+                        done = True
+                        break
+                if not done:
+                    topic = self.avilable_topics.get()
+                    self.topics[topic] = {
+                        "name": args[0],
+                        "source": [args[5]],
+                        "subscribers": [],
+                    }
+                    logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} published on {topic}")
                     self.sender.send(
-                        Method.RejectPublishedTopic.value,
+                        Method.AprrovePublishedTopic.value,
                         0x0,
                         0x0,
                         args[2],
-                        0x00,
+                        self.dtype_parser.encode(DType.Byte.value, topic),
                         args[0],
                     )
-                    return
-            topic = self.avilable_topics.get()
-            self.topics[topic] = {
-                "name": args[0],
-                "source": [args[5]],
-                "subscribers": [],
-            }
-            logger.info(f"[{args[4]}:{args[5]}] Topic {args[0]} published on {topic}")
-            self.sender.send(
-                Method.AprrovePublishedTopic.value,
-                0x0,
-                0x0,
-                args[2],
-                self.dtype_parser.encode(DType.Byte.value, topic),
-                args[0],
-            )
 
         self.method_handlers[Method.Publish.value] = topic_publish
 
@@ -165,19 +168,18 @@ class MethodHandler:
                 logger.error(
                     f"[{args[4]}:{args[5]}] Subscription request rejected"
                 )
-                return
 
             # check if the device is autherized : TODO
-
-            self.topics[args[3]]["subscribers"].append(f"{args[4]}:{args[5]}")
-            self.sender.send(
-                Method.AprroveSubscribedTopic.value,
-                0x0,
-                0x0,
-                DType.Null.value,
-                args[3],
-            )
-            logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
+            else:
+                self.topics[args[3]]["subscribers"].append(f"{args[4]}:{args[5]}")
+                self.sender.send(
+                    Method.AprroveSubscribedTopic.value,
+                    0x0,
+                    0x0,
+                    DType.Null.value,
+                    args[3],
+                )
+                logger.info(f"[{args[4]}:{args[5]}] Subscribed to topic {args[3]}")
 
         self.method_handlers[Method.Subscribe.value] = subsribe
 
@@ -212,13 +214,41 @@ class MethodHandler:
         self.method_handlers[Method.AllTopics.value] = lambda *args: logger.info(
             f"[{args[4]}:{args[5]}] All topic send."
         )
-        # need to send in map or json format or may be array of string  ?
 
     def __init__root_method(self):
         pass
 
     def __init__data_method(self):
-        pass
+        
+        def datatransfer(*args):
+            if args[3] not in self.topics:
+                logger.error(f"Topic {args[3]} does not exists")
+                self.sender.send(
+                    Method.DataTransferReject.value,
+                    0x0,
+                    0x0,
+                    DType.Null.value,
+                    args[3],
+                )
+            elif len(self.topics[args[3]]["subscribers"]) > 0:
+                for sub in self.topics[args[3]]["subscribers"]:
+                    ip, port = sub.split(":")
+                    logger.info(f"Sending data to [{ip}:{port}] , {sub}")
+                    self.sender.set_dst(ip, int(port))
+                    self.sender.send(
+                        Method.DataTransfer.value,
+                        0x0,
+                        0x0,
+                        args[2],
+                        args[3],
+                        args[0],
+                    )
+            logger.info(f"Data recieved from [{args[4]}:{args[5]}] on topic {args[3]}")
+
+        self.method_handlers[Method.DataTransfer.value] = datatransfer
+
+        self.method_handlers[Method.DataTransferAcknowledgement.value] = lambda *args: logger.info(f"Data transfer acknowledgement from [{args[4]}:{args[5]}]")
+        self.method_handlers[Method.DataTransferReject.value] = lambda *args: logger.info(f"Data transfer reject from [{args[4]}:{args[5]}]")
 
     def __init__control_method(self):
         pass

@@ -51,3 +51,12 @@ class Method(Enum):
     DisconnectAcknowledgement = 0x0E
 
     # Root methods
+
+    # data transfer methods
+    KeyExchangeInit = 0x20
+    KeyExchangeResponse = 0x21
+    DataTransfer = 0x22
+    DataTransferEncrypted = 0x23
+    DataTransferAcknowledgement = 0x24
+    DataTransferReject = 0x25
+

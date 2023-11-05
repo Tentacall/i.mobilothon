@@ -1,7 +1,7 @@
 import scapy.all as scapy
 import random
 from protocol.proto_py.utils import DtypeParser
-
+from copy import deepcopy
 
 class PearsonHashing:
     def __init__(self) -> None:
@@ -75,7 +75,7 @@ class CProto:
         self.packet[scapy.TCP].dport = dst_port
 
     def send(self, method=0x00, retain=0x0, auth=0x0, dtype=0x00, topic=0x00, msg=None):
-        packet = self.packet
+        packet = deepcopy(self.packet)
         if msg is not None:
             msg = self.dtype_parser.encode(dtype, msg)
             _hash = self.hashing(msg)
